@@ -36,13 +36,9 @@ function! s:floaterm_run(opts)
 	let cmd .= ' --silent=' . get(a:opts, 'silent', 0)
 	let cwd = (a:opts.cwd == '')? getcwd() : (a:opts.cwd)
 	let cmd .= ' --cwd=' . fnameescape(cwd)
-	let cmd .= ' ' . a:opts.cmd
-	" echo cmd
+	let cmd .= ' ' . fnameescape(asyncrun#script_write(a:opts.cmd, 0))
 	exec cmd
 	if get(a:opts, 'focus', 1) == 0
-		" Do not focus on floaterm window, and close it once cursor moves
-		" If you want to jump to the floaterm window, use <C-w>p
-		" You can choose whether to use the following code or not
 		stopinsert | noa wincmd p
 		augroup close-floaterm-runner
 			autocmd!
