@@ -102,7 +102,7 @@ function! s:floaterm_run(opts)
 	let cmd = 'FloatermNew '
 	let cmd .= ' --wintype=float'
 	if has_key(a:opts, 'position') 
-		let cmd .= ' --position=' . fnameescape(a:opts.floatpos)
+		let cmd .= ' --position=' . fnameescape(a:opts.position)
 	endif
 	if has_key(a:opts, 'width')
 		let cmd .= ' --width=' . fnameescape(a:opts.width)
