@@ -18,25 +18,25 @@ let g:asyncrun_runner = get(g:, 'asyncrun_runner', {})
 " gnome-terminal
 "----------------------------------------------------------------------
 function! s:gnome_run(opts)
-    let cmds = []
-    let cmds += ['cd ' . shellescape(getcwd()) ]
-    let cmds += [a:opts.cmd]
+	let cmds = []
+	let cmds += ['cd ' . shellescape(getcwd()) ]
+	let cmds += [a:opts.cmd]
 	let cmds += ['echo ""']
-    let cmds += ['read -n1 -rsp "press any key to continue ..."']
-    let text = shellescape(join(cmds, ";"))
-    let command = 'gnome-terminal -- bash -c ' . text
-    call system(command . ' &')
+	let cmds += ['read -n1 -rsp "press any key to continue ..."']
+	let text = shellescape(join(cmds, ";"))
+	let command = 'gnome-terminal -- bash -c ' . text
+	call system(command . ' &')
 endfunction
 
 function! s:gnome_tab(opts)
-    let cmds = []
-    let cmds += ['cd ' . shellescape(getcwd()) ]
-    let cmds += [a:opts.cmd]
+	let cmds = []
+	let cmds += ['cd ' . shellescape(getcwd()) ]
+	let cmds += [a:opts.cmd]
 	let cmds += ['echo ""']
-    let cmds += ['read -n1 -rsp "press any key to continue ..."']
-    let text = shellescape(join(cmds, ";"))
-    let command = 'gnome-terminal --tab --active -- bash -c ' . text
-    call system(command . ' &')
+	let cmds += ['read -n1 -rsp "press any key to continue ..."']
+	let text = shellescape(join(cmds, ";"))
+	let command = 'gnome-terminal --tab --active -- bash -c ' . text
+	call system(command . ' &')
 endfunction
 
 let g:asyncrun_runner.gnome = function('s:gnome_run')
@@ -47,12 +47,12 @@ let g:asyncrun_runner.gnome_tab = function('s:gnome_tab')
 " run in xterm
 "----------------------------------------------------------------------
 function! s:xterm_run(opts)
-    let cmds = []
-    let cmds += ['cd ' . shellescape(getcwd()) ]
-    let cmds += [a:opts.cmd]
+	let cmds = []
+	let cmds += ['cd ' . shellescape(getcwd()) ]
+	let cmds += [a:opts.cmd]
 	let cmds += ['echo ""']
-    let cmds += ['read -n1 -rsp "press any key to continue ..."']
-    let text = shellescape(join(cmds, ";"))
+	let cmds += ['read -n1 -rsp "press any key to continue ..."']
+	let text = shellescape(join(cmds, ";"))
 	let command = 'xterm '
 	let command .= ' -T ' . shellescape(':AsyncRun ' . a:opts.cmd)
 	let command .= ' -e bash -c ' . text
