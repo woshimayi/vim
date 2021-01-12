@@ -13,11 +13,28 @@
 "----------------------------------------------------------------------
 let g:asyncrun_runner = get(g:, 'asyncrun_runner', {})
 
+let s:windows = has('win32') || has('win64') || has('win16') || has('win95')
+
+
+"----------------------------------------------------------------------
+" utils
+"----------------------------------------------------------------------
+function! s:errmsg(msg)
+	redraw
+	echohl ErrorMsg
+	echom 'ERROR: ' . a:msg
+	echohl NONE
+	return 0
+endfunction
+
 
 "----------------------------------------------------------------------
 " gnome-terminal
 "----------------------------------------------------------------------
 function! s:gnome_run(opts)
+	if !executable('gnome-terminal')
+		return s:errmsg('gnome-terminal executable not find !')
+	endif
 	let cmds = []
 	let cmds += ['cd ' . shellescape(getcwd()) ]
 	let cmds += [a:opts.cmd]
@@ -29,6 +46,9 @@ function! s:gnome_run(opts)
 endfunction
 
 function! s:gnome_tab(opts)
+	if !executable('gnome-terminal')
+		return s:errmsg('gnome-terminal executable not find !')
+	endif
 	let cmds = []
 	let cmds += ['cd ' . shellescape(getcwd()) ]
 	let cmds += [a:opts.cmd]
@@ -42,11 +62,18 @@ endfunction
 let g:asyncrun_runner.gnome = function('s:gnome_run')
 let g:asyncrun_runner.gnome_tab = function('s:gnome_tab')
 
+if s:windows == 0
+	let g:asyncrun_runner.external = g:asyncrun_runner.gnome
+endif
+
 
 "----------------------------------------------------------------------
 " run in xterm
 "----------------------------------------------------------------------
 function! s:xterm_run(opts)
+	if !executable('xterm')
+		return s:errmsg('xterm executable not find !')
+	endif
 	let cmds = []
 	let cmds += ['cd ' . shellescape(getcwd()) ]
 	let cmds += [a:opts.cmd]
@@ -66,6 +93,12 @@ let g:asyncrun_runner.xterm = function('s:xterm_run')
 " floaterm
 "----------------------------------------------------------------------
 function! s:floaterm_run(opts)
+	if exists(':FloatermNew') != 2
+		return s:errmsg('require voldikss/vim-floaterm')
+	endif
+	if exists('*asyncrun#script_write') == 0
+		return s:errmsg('require asyncrun 2.7.8 or above')
+	endif
 	let cmd = 'FloatermNew '
 	let cmd .= ' --wintype=float'
 	if has_key(a:opts, 'position') 
