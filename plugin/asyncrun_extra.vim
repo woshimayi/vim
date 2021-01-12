@@ -18,17 +18,25 @@ let g:asyncrun_runner = get(g:, 'asyncrun_runner', {})
 "----------------------------------------------------------------------
 function! s:floaterm_run(opts)
 	let cmd = 'FloatermNew '
-	" let cmd .= ' --position=bottomright'
 	let cmd .= ' --wintype=float'
-	" let cmd .= ' --height=0.4'
-	" let cmd .= ' --width=0.4'
-	" let cmd .= ' --title=' . fnameescape(' Floaterm Runner ')
+	if has_key(a:opts, 'floatpos') 
+		let cmd .= ' --position=' . fnameescape(a:opts.floatpos)
+	endif
+	if has_key(a:opts, 'width')
+		let cmd .= ' --width=' . fnameescape(a:opts.width)
+	endif
+	if has_key(a:opts, 'height')
+		let cmd .= ' --height=' . fnameescape(a:opts.height)
+	endif
+	if has_key(a:opts, 'title')
+		let cmd .= ' --title=' . fnameescape(a:opts.title)
+	endif
 	let cmd .= ' --autoclose=0'
 	let cmd .= ' --silent=' . get(a:opts, 'silent', 0)
 	let cwd = (a:opts.cwd == '')? getcwd() : (a:opts.cwd)
 	let cmd .= ' --cwd=' . fnameescape(cwd)
 	let cmd .= ' ' . a:opts.cmd
-	echo cmd
+	" echo cmd
 	exec cmd
 	if get(a:opts, 'focus', 1) == 0
 		" Do not focus on floaterm window, and close it once cursor moves
