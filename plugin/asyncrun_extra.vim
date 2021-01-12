@@ -84,7 +84,7 @@ function! s:floaterm_run(opts)
 	let cmd .= ' --silent=' . get(a:opts, 'silent', 0)
 	let cwd = (a:opts.cwd == '')? getcwd() : (a:opts.cwd)
 	let cmd .= ' --cwd=' . fnameescape(cwd)
-	" for precise arguments passing and shell builtin commands
+	" for precisely arguments passing and shell builtin commands
 	" a temporary file is introduced
 	let cmd .= ' ' . fnameescape(asyncrun#script_write(a:opts.cmd, 0))
 	exec cmd
