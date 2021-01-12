@@ -146,3 +146,29 @@ endfunction
 let g:asyncrun_runner.floaterm = function('s:floaterm_run')
 
 
+"----------------------------------------------------------------------
+" tmux
+"----------------------------------------------------------------------
+function! s:tmux_run(opts)
+	if exists('*VimuxRunCommand') == 0
+		return s:errmsg('require benmills/vimux')
+	endif
+	let cwd = getcwd()
+	call VimuxRunCommand('cd ' . shellescape(cwd) . '; ' . a:opts.cmd)
+endfunction
+
+let g:asyncrun_runner.tmux = function('s:tmux_run')
+
+
+"----------------------------------------------------------------------
+" terminal_help
+"----------------------------------------------------------------------
+function! s:termhelp_run(opts)
+	let cwd = getcwd()
+	call TerminalSend('cd ' . shellescape(cwd) . "\r")
+	call TerminalSend(a:opts.cmd . "\r")
+endfunction
+
+let g:asyncrun_runner.termhelp = function('s:termhelp_run')
+
+
