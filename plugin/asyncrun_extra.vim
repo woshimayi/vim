@@ -20,7 +20,7 @@ let g:asyncrun_runner = get(g:, 'asyncrun_runner', {})
 function! s:floaterm_run(opts)
 	let cmd = 'FloatermNew '
 	let cmd .= ' --wintype=float'
-	if has_key(a:opts, 'floatpos') 
+	if has_key(a:opts, 'position') 
 		let cmd .= ' --position=' . fnameescape(a:opts.floatpos)
 	endif
 	if has_key(a:opts, 'width')
@@ -36,6 +36,8 @@ function! s:floaterm_run(opts)
 	let cmd .= ' --silent=' . get(a:opts, 'silent', 0)
 	let cwd = (a:opts.cwd == '')? getcwd() : (a:opts.cwd)
 	let cmd .= ' --cwd=' . fnameescape(cwd)
+	" for precise arguments passing and shell builtin commands
+	" a temporary file is introduced
 	let cmd .= ' ' . fnameescape(asyncrun#script_write(a:opts.cmd, 0))
 	exec cmd
 	if get(a:opts, 'focus', 1) == 0
