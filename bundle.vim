@@ -408,6 +408,7 @@ endif
 
 if index(g:bundle_group, 'floaterm') >= 0
 	Plug 'voldikss/vim-floaterm'
+	IncScript site/bundle/floaterm.vim
 endif
 
 if index(g:bundle_group, 'tabnine') >= 0
