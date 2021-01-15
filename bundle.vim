@@ -65,7 +65,6 @@ if index(g:bundle_group, 'simple') >= 0
 	Plug 'tpope/vim-fugitive'
 	Plug 'tpope/vim-unimpaired'
 	Plug 'godlygeek/tabular', { 'on': 'Tabularize' }
-	Plug 'sonph/onehalf', {'rtp': 'vim/'}
 	Plug 'bootleq/vim-cycle'
 	Plug 'tpope/vim-surround'
 
@@ -414,6 +413,10 @@ endif
 if index(g:bundle_group, 'tabnine') >= 0
 	Plug 'codota/tabnine-vim'
 	IncScript site/bundle/tabnine.vim
+endif
+
+if index(g:bundle_group, 'colors') >= 0
+	Plug 'sonph/onehalf', {'rtp': 'vim/'}
 endif
 
 
