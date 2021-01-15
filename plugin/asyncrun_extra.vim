@@ -62,10 +62,6 @@ endfunction
 let g:asyncrun_runner.gnome = function('s:gnome_run')
 let g:asyncrun_runner.gnome_tab = function('s:gnome_tab')
 
-if s:windows == 0
-	let g:asyncrun_runner.external = g:asyncrun_runner.gnome
-endif
-
 
 "----------------------------------------------------------------------
 " run in xterm
@@ -87,6 +83,24 @@ function! s:xterm_run(opts)
 endfunc
 
 let g:asyncrun_runner.xterm = function('s:xterm_run')
+
+
+"----------------------------------------------------------------------
+" external runner
+"----------------------------------------------------------------------
+function! s:external_run(opts)
+	if s:windows == 0
+		if executable('gnome_terminal')
+			call s:gnome_run(a:opts)
+		elseif executable('xterm')
+			call s:xterm_run(a:opts)
+		endif
+	endif
+endfunction
+
+if s:windows == 0
+	let g:asyncrun_runner.external = function('s:external_run')
+endif
 
 
 "----------------------------------------------------------------------
