@@ -100,7 +100,7 @@ function! s:external_run(opts)
 		elseif n == 'xterm' && executable('xterm')
 			return s:xterm_run(a:opts)
 		endif
-	endif
+	endfor
 endfunction
 
 if s:windows == 0
