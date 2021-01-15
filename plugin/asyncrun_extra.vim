@@ -89,21 +89,16 @@ let g:asyncrun_runner.xterm = function('s:xterm_run')
 " external runner
 "----------------------------------------------------------------------
 function! s:external_run(opts)
-	if s:windows == 0
-		let p = get(g:, 'asyncrun_extra_priority', ['gnome', 'xterm'])
-		for n in p
-			if n == 'gnome'
-				if executable('gnome_terminal')
-					call s:gnome_run(a:opts)
-					return
-				endif
-			elseif n == 'xterm'
-				if executable('xterm')
-					call s:xterm_run(a:opts)
-					return
-				endif
-			endif
-		endfor
+	if s:windows != 0
+		return 0
+	endif
+	let p = get(g:, 'asyncrun_extra_priority', ['gnome', 'xterm'])
+	for n in p
+		if n == 'gnome' && executable('gnome_terminal')
+			return s:gnome_run(a:opts)
+		elseif n == 'xterm' && executable('xterm')
+			return s:xterm_run(a:opts)
+		endif
 	endif
 endfunction
 
