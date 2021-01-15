@@ -92,7 +92,8 @@ function! s:external_run(opts)
 	if s:windows != 0
 		return 0
 	endif
-	let p = get(g:, 'asyncrun_extra_priority', ['gnome', 'xterm'])
+	let d = ['gnome', 'xterm']
+	let p = get(g:, 'asyncrun_extra_priority', d)
 	for n in p
 		if n == 'gnome' && executable('gnome_terminal')
 			return s:gnome_run(a:opts)
