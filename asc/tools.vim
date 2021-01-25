@@ -9,8 +9,6 @@
 
 " global settings
 let s:winopen = 0
-let g:status_var = ""
-set statusline=\ %<%F[%1*%M%*%n%R%H]\ %{''.g:status_var}%=\ %y\ %0(%{&fileformat}\ [%{(&fenc==\"\"?&enc:&fenc).(&bomb?\",BOM\":\"\")}]\ %v:%l/%L%)
 set splitright
 set smartcase
 set switchbuf=useopen,usetab,newtab
@@ -18,53 +16,6 @@ set viewdir=~/.vim/view
 set wildmenu
 set wcm=<C-Z>
 "set splitbelow
-
-
-" retry saving on windows
-function! Tools_SaveRetry() 
-	let windows = has('win32') || has('win64') || has('win95') 
-	let windows = windows || has('win32unix') || has('win16')
-	let v:errmsg = ''
-	if bufname('%') == ''
-		echohl ErrorMsg
-		echom "E32: No file name"
-		echohl None
-		return
-	endif
-	if windows == 0 || &readonly != 0
-		try
-			exec 'w'
-		catch /.*/
-			echohl ErrorMsg
-			echom v:exception
-			echohl None
-		endtry
-		return
-	endif
-	let retry = 30
-	while retry > 0
-		let retry -= 1
-		try
-			silent exec 'w'
-			echom "'". bufname('%'). "' written"
-			break
-		catch /^Vim\%((\a\+)\)\=:E505/
-			sleep 25m
-			" echom "retry"
-		catch
-			echohl ErrorMsg
-			echom v:errmsg
-			echohl None
-			break
-		endtry
-	endwhile
-	if retry <= 0
-		silent exec "w!"
-	endif
-endfunc
-
-command! -nargs=0 WriteFileGuard call Tools_SaveRetry()
-
 
 " open quickfix
 function! Toggle_QuickFix(size)
@@ -132,7 +83,6 @@ function! Tools_FileSwitch(how, ...)
 		let l:params += [a:{i + 1}]
 	endfor
 	if has('win32') || has('win16') || has('win64') || has('win95')
-		let l:filename = tolower(l:filename)
 		let l:filename = substitute(l:filename, "\\", '/', 'g')
 	endif
 	for i in range(tabpagenr('$'))
@@ -148,7 +98,6 @@ function! Tools_FileSwitch(how, ...)
 			endif
 			let l:name = fnamemodify(bufname(l:bufnr), ':p')
 			if has('win32') || has('win16') || has('win64') || has('win95')
-				let l:name = tolower(l:name)
 				let l:name = substitute(l:name, "\\", '/', 'g')
 			endif
 			if l:filename == l:name
@@ -213,14 +162,26 @@ function! Open_HeaderFile(where)
 		echo 'switch failed, not a c/c++ source'
 		return
 	endif
+	if a:where < 0 || a:where == 0
+		if &modified
+			if &hidden == 0 && &bufhidden != 'hide'
+				echo 'file is modified'
+				return
+			endif
+		endif
+	endif
 	for l:next in l:altnames
 		let l:newname = l:main . '.' . l:next
 		if filereadable(l:newname)
-			if a:where == 0
+			if a:where < 0
+				exec 'e ' . fnameescape(l:newname)
+			elseif a:where == 0
 				call Tools_FileSwitch('e', l:newname)
 			elseif a:where == 1
 				call Tools_FileSwitch('vs', l:newname)
-			else
+			elseif a:where == 2
+				call Tools_FileSwitch('split', l:newname)
+			elseif a:where == 3
 				call Tools_FileSwitch('tabnew', l:newname)
 			endif
 			return
@@ -228,6 +189,10 @@ function! Open_HeaderFile(where)
 	endfor
 	echo 'switch failed, can not find another part of c/c++ source'
 endfunc
+
+command! -nargs=0 SwitchHeaderEdit call Open_HeaderFile(-1)
+command! -nargs=0 SwitchHeaderSplit call Open_HeaderFile(1)
+command! -nargs=0 SwitchHeaderTab call Open_HeaderFile(3)
 
 " Open Explore in new tab with current directory
 function! Open_Explore(where)
@@ -428,10 +393,10 @@ endfunc
 
 
 " quickfix
-let g:status_var = ""
+let g:asyncrun_status = ''
 augroup QuickfixStatus
-	au! BufWinEnter quickfix setlocal 
-		\ statusline=%t\ [%{g:vimmake_build_status}]\ [%{g:asyncrun_status}]\ %{exists('w:quickfix_title')?\ '\ '.w:quickfix_title\ :\ ''}\ %=%-15(%l,%c%V%)\ %P
+	" au! BufWinEnter quickfix setlocal 
+	" 	\ statusline=%t\ [%{g:asyncrun_status}]\ %{exists('w:quickfix_title')?\ '\ '.w:quickfix_title\ :\ ''}\ %=%-15(%l,%c%V%)\ %P
 augroup END
 
 
@@ -531,6 +496,7 @@ function! Tools_SwitchLayout()
 	set number
 	set showtabline=2
 	set laststatus=2
+	set signcolumn=yes
 	if !has('gui_running')
 		set t_Co=256
 	endif
@@ -740,12 +706,12 @@ function! s:edit_tool(bang, name)
 		let name = 'vimmake'
 	endif
 	if has('win32') || has('win64') || has('win16') || has('win95')
-		let name = vimmake#path_join(g:vimmake_path, name)
+		let name = asclib#path#join(g:vimmake_path, name)
 		if a:name != '' && a:name != '-' && a:name != '\-'
 			let name .= '.cmd'
 		endif
 	else
-		let name = vimmake#path_join(g:vimmake_path, name)
+		let name = asclib#path#join(g:vimmake_path, name)
 		if stridx(name, '~') >= 0
 			let name = expand(name)
 		endif
@@ -773,7 +739,7 @@ command! -bang -nargs=1 EditTool call s:edit_tool('<bang>', <f-args>)
 
 
 function! s:refresh_tool_mode(bang) abort
-	let name = vimmake#path_join(g:vimmake_path, 'vimmake')
+	let name = asclib#path#join(g:vimmake_path, 'vimmake')
 	let name = expand(name)
 	if !filereadable(name)
 		if a:bang != '!'
@@ -809,7 +775,7 @@ command! -bang -nargs=0 RefreshToolMode call s:refresh_tool_mode('<bang>')
 
 function! Tools_SwitchMakeFile()
 	let root = vimmake#get_root('%')
-	let name = vimmake#path_join(root, 'Makefile')
+	let name = asclib#path#join(root, 'Makefile')
 	exec 'FileSwitch tabe '. fnameescape(name)
 endfunc
 
@@ -958,9 +924,22 @@ command! -nargs=? -range MyCheatSheetAlign <line1>,<line2>call s:Tools_CheatShee
 
 
 "----------------------------------------------------------------------
+" add class name to function
+"----------------------------------------------------------------------
+function! s:Tools_ClassInsert(clsname)
+	let clsname = escape(a:clsname, '/\[*~^')
+	let text = 's/\~\=\w\+\s*(/' . clsname . '::&/'
+	silent! keepjumps exec text
+endfunc
+
+command! -nargs=1 -range ClassInsert <line1>,<line2>call s:Tools_ClassInsert(<q-args>)
+command! -nargs=0 -range BraceExpand <line1>,<line2>s/;\s*$/\r{\r}\r\r/
+
+
+"----------------------------------------------------------------------
 " Load url
 "----------------------------------------------------------------------
-function! s:Tools_ReadUrl(url)
+function! s:ReadUrl(url)
 	if executable('curl')
 		exec 'r !curl -sL '.shellescape(a:url)
 	elseif executable('wget')
@@ -970,14 +949,14 @@ function! s:Tools_ReadUrl(url)
 	endif
 endfunc
 
-command! -nargs=1 MyUrlRead call s:Tools_ReadUrl(<q-args>)
+command! -nargs=1 MyUrlRead call s:ReadUrl(<q-args>)
 
 
 
 "----------------------------------------------------------------------
 " Remove some path from $PATH
 "----------------------------------------------------------------------
-function! s:Tools_RemovePath(path) abort
+function! s:RemovePath(path) abort
 	let windows = 0
 	let path = a:path
 	let sep = ':'
@@ -1006,7 +985,31 @@ function! s:Tools_RemovePath(path) abort
 	let $PATH = text
 endfunc
 
-command! -nargs=1 EnvPathRemove call s:Tools_RemovePath(<q-args>)
+command! -nargs=1 EnvPathRemove call s:RemovePath(<q-args>)
 
+
+
+"----------------------------------------------------------------------
+" open terminal
+"----------------------------------------------------------------------
+function! s:OpenTerminal(pos)
+	let shell = get(g:, 'terminal_shell', split(&shell, ' ')[0])
+	exec 'AsyncRun -mode=term -pos='. (a:pos) . ' -cwd=<root> ' . shell
+endfunc
+
+command! -nargs=1 OpenTerminal call s:OpenTerminal(<q-args>)
+
+
+"----------------------------------------------------------------------
+" break long lines to small lines of 76 characters.
+"----------------------------------------------------------------------
+function! s:LineBreaker(width)
+	let width = &textwidth
+	let &textwidth = str2nr(a:width)	
+	exec 'normal ggVGgq'
+	let &textwidth = width
+endfunc
+
+command! -nargs=1 LineBreaker call s:LineBreaker(<q-args>)
 
 

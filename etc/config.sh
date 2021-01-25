@@ -4,11 +4,11 @@
 alias ls='ls --color'
 alias ll='ls -lh'
 alias la='ls -lAh'
-alias zz='z -c'
 alias grep='grep --color=tty'
 alias nvim='/usr/local/opt/bin/vim --cmd "let g:vim_startup=\"nvim\""'
 alias mvim='/usr/local/opt/bin/vim --cmd "let g:vim_startup=\"mvim\""'
 alias tmux='tmux -2'
+alias lld='lsd -l'
 
 # default editor
 export EDITOR=vim
@@ -25,6 +25,19 @@ if [ -d "$HOME/.local/go" ]; then
 	fi
 fi
 
+# setup for alternative go path
+if [ -d "$HOME/go" ]; then
+	export GOPATH="$HOME/go"
+	if [ -d "$HOME/go/bin" ]; then
+		export PATH="$HOME/go/bin:$PATH"
+	fi
+fi
+
+# setup for /usr/local/app/bin if it exists
+if [ -d /usr/local/app/bin ]; then
+	export PATH="/usr/local/app/bin:$PATH"
+fi
+
 # setup for go if it exists
 if [ -d /usr/local/app/go ]; then
 	export GOROOT="/usr/local/app/go"
@@ -36,9 +49,24 @@ if [ -d /usr/local/app/node ]; then
 	export PATH="/usr/local/app/node/bin:$PATH"
 fi
 
+# setup for own dotfiles
+if [ -d "$HOME/.vim/vim/tools/utils" ]; then
+	export PATH="$HOME/.vim/vim/tools/utils:$PATH"
+fi
+
+# setup for local rust
+if [ -d "$HOME/.cargo/bin" ]; then
+	export PATH="$HOME/.cargo/bin;$PATH"
+fi
+
 # setup for cheat
 if [ -d "$HOME/.vim/vim/cheat" ]; then
-	export DEFAULT_CHEAT_DIR=~/.vim/vim/cheat
+	export CHEAT_USER_DIR=~/.vim/vim/cheat
+fi
+
+# setup for ~/bin
+if [ -d "$HOME/bin" ]; then
+	export PATH="$HOME/bin:$PATH"
 fi
 
 
@@ -65,9 +93,9 @@ fi
 
 export VIM_CONFIG
 
-[ -d "$VIM_CONFIG/cheat" ] && export DEFAULT_CHEAT_DIR="$VIM_CONFIG/cheat"
+[ -d "$VIM_CONFIG/cheat" ] && export CHEAT_PATH="$VIM_CONFIG/cheat"
 
-export CHEATCOLORS=true
+export CHEAT_COLORS=true
 
 if [ -f "$HOME/.local/lib/python/compinit.py" ]; then
 	export PYTHONSTARTUP="$HOME/.local/lib/python/compinit.py"
@@ -86,7 +114,7 @@ fi
 #----------------------------------------------------------------------
 
 # default bash key binding
-if [ -n "$BASH_VERSION" ]; then
+if [[ -n "$BASH_VERSION" ]]; then
 	bind '"\eh":"\C-b"'
 	bind '"\el":"\C-f"'
 	bind '"\ej":"\C-n"'
@@ -96,7 +124,7 @@ if [ -n "$BASH_VERSION" ]; then
 	bind '"\eJ":"\C-a"'
 	bind '"\eK":"\C-e"'
 	bind '"\e;":"ll\n"'
-elif [ -n "$ZSH_VERSION" ]; then
+elif [[ -n "$ZSH_VERSION" ]]; then
 	bindkey -s '\e;' 'll\n'
 	bindkey -s '\eu' 'ranger_cd\n'
 fi
@@ -105,11 +133,50 @@ fi
 #----------------------------------------------------------------------
 # https://github.com/rupa/z
 #----------------------------------------------------------------------
-if [ -n "$BASH_VERSION" ]; then
-	if [ -z "$(type -t _z)" ]; then
-		[ -f "$HOME/.local/etc/z.sh" ] && . "$HOME/.local/etc/z.sh"
+if [[ -z "$DISABLE_Z_PLUGIN" ]]; then
+	if [[ ! -d "$HOME/.local/share/zlua" ]]; then
+		mkdir -p -m 700 "$HOME/.local/share/zlua" 2> /dev/null
+	fi
+	export _ZL_DATA="$HOME/.local/share/zlua/zlua.txt"
+	export _Z_DATA="$HOME/.local/share/zlua/z.txt"
+	export _ZL_USE_LFS=1
+	if [[ -x "$INIT_LUA" ]] && [[ -f "$HOME/.local/etc/z.lua" ]]; then
+		if [[ -n "$BASH_VERSION" ]]; then
+			eval "$($INIT_LUA $HOME/.local/etc/z.lua --init bash once enhanced fzf)"
+		elif [[ -n "$ZSH_VERSION" ]]; then
+			eval "$($INIT_LUA $HOME/.local/etc/z.lua --init zsh once enhanced)"
+		else
+			eval "$($INIT_LUA $HOME/.local/etc/z.lua --init auto once enhanced)"
+		fi
+		alias zi='z -i'
+		alias zb='z -b'
+		alias zf='z -I'
+		alias zh='z -I -t .'
+		alias zd='z -I .'
+		alias zbi='z -b -i'
+		alias zbf='z -b -I'
+		_ZL_ECHO=1
+	else
+		[[ -f "$HOME/.local/etc/z.sh" ]] && . "$HOME/.local/etc/z.sh"
+		alias zz='z'
 	fi
 fi
+
+alias zz='z -c'
+alias zzc='zz -c'
+
+
+#----------------------------------------------------------------------
+# commacd.sh
+#----------------------------------------------------------------------
+COMMACD_CD="cd"
+[[ -e "$HOME/.local/etc/commacd.sh" ]] && . "$HOME/.local/etc/commacd.sh"
+
+
+#----------------------------------------------------------------------
+# m.sh - bookmark
+#----------------------------------------------------------------------
+[[ -e "$HOME/.local/etc/m.sh" ]] && . "$HOME/.local/etc/m.sh"
 
 
 #----------------------------------------------------------------------

@@ -3,7 +3,7 @@
 " path.vim - 
 "
 " Created by skywind on 2018/04/25
-" Last Modified: 2018/04/25 15:46:44
+" Last Modified: 2020/03/22 15:51
 "
 "======================================================================
 
@@ -88,25 +88,61 @@ endfunc
 " join two path
 "----------------------------------------------------------------------
 function! asclib#path#join(home, name)
-    let l:size = strlen(a:home)
-    if l:size == 0 | return a:name | endif
+	let l:size = strlen(a:home)
+	if l:size == 0 | return a:name | endif
 	if asclib#path#isabs(a:name)
 		return a:name
 	endif
-    let l:last = strpart(a:home, l:size - 1, 1)
-    if has("win32") || has("win64") || has("win16") || has('win95')
-        if l:last == "/" || l:last == "\\"
-            return a:home . a:name
-        else
-            return a:home . '/' . a:name
-        endif
-    else
-        if l:last == "/"
-            return a:home . a:name
-        else
-            return a:home . '/' . a:name
-        endif
-    endif
+	let l:last = strpart(a:home, l:size - 1, 1)
+	if has("win32") || has("win64") || has("win16") || has('win95')
+		if l:last == "/" || l:last == "\\"
+			return a:home . a:name
+		else
+			return a:home . '/' . a:name
+		endif
+	else
+		if l:last == "/"
+			return a:home . a:name
+		else
+			return a:home . '/' . a:name
+		endif
+	endif
+endfunc
+
+
+"----------------------------------------------------------------------
+" full file name
+"----------------------------------------------------------------------
+function! asclib#path#fullname(f)
+	let f = a:f
+	if f =~ "'."
+		try
+			redir => m
+			silent exe ':marks' f[1]
+			redir END
+			let f = split(split(m, '\n')[-1])[-1]
+			let f = filereadable(f)? f : ''
+		catch
+			let f = '%'
+		endtry
+	endif
+	if f == '%'
+		let f = expand('%')
+		if &bt == 'terminal'
+			let f = ''
+		endif
+	endif
+	let f = fnamemodify(f, ':p')
+	if has('win32') || has('win64') || has('win16') || has('win95')
+		let f = substitute(f, "\\", '/', 'g')
+	endif
+	if len(f) > 1
+		let size = len(f)
+		if f[size - 1] == '/'
+			let f = strpart(f, 0, size - 1)
+		endif
+	endif
+	return f
 endfunc
 
 
@@ -139,19 +175,24 @@ endfunc
 
 
 "----------------------------------------------------------------------
+" normal case
+"----------------------------------------------------------------------
+function! asclib#path#normcase(path)
+	if s:windows == 0
+		return (has('win32unix') == 0)? (a:path) : tolower(a:path)
+	else
+		return tolower(tr(a:path, '/', '\'))
+	endif
+endfunc
+
+
+"----------------------------------------------------------------------
 " returns 1 for equal, 0 for not equal
 "----------------------------------------------------------------------
 function! asclib#path#equal(path1, path2)
-	let p1 = asclib#path#abspath(a:path1)
-	let p2 = asclib#path#abspath(a:path2)
-	if s:windows || has('win32unix')
-		let p1 = tolower(p1)
-		let p2 = tolower(p2)
-	endif
-	if p1 == p2
-		return 1
-	endif
-	return 0
+	let p1 = asclib#path#normcase(asclib#path#abspath(a:path1))
+	let p2 = asclib#path#normcase(asclib#path#abspath(a:path2))
+	return (p1 == p2)? 1 : 0
 endfunc
 
 
@@ -162,7 +203,7 @@ function! asclib#path#runtime(path)
 	let pathname = fnamemodify(s:scripthome, ':h')
 	let pathname = asclib#path#join(pathname, a:path)
 	let pathname = fnamemodify(pathname, ':p')
-	return substitute(pathname, '\\', '/', 'g')
+	return tr(pathname, '\', '/')
 endfunc
 
 
@@ -212,18 +253,15 @@ endfunc
 "----------------------------------------------------------------------
 " find project root
 "----------------------------------------------------------------------
-function! s:find_root(path, markers)
-    function! s:guess_root(filename, markers)
-        let fullname = vimmake#fullname(a:filename)
-        if exists('b:asclib_path_root')
-            return b:asclib_path_root
-        endif
-        if fullname =~ '^fugitive:/'
-            if exists('b:git_dir')
-                return fnamemodify(b:git_dir, ':h')
-            endif
-            return '' " skip any fugitive buffers early
-        endif
+function! s:find_root(path, markers, strict)
+	function! s:guess_root(filename, markers)
+		let fullname = asclib#path#fullname(a:filename)
+		if fullname =~ '^fugitive:/'
+			if exists('b:git_dir')
+				return fnamemodify(b:git_dir, ':h')
+			endif
+			return '' " skip any fugitive buffers early
+		endif
 		let pivot = fullname
 		if !isdirectory(pivot)
 			let pivot = fnamemodify(pivot, ':h')
@@ -232,7 +270,11 @@ function! s:find_root(path, markers)
 			let prev = pivot
 			for marker in a:markers
 				let newname = asclib#path#join(pivot, marker)
-				if filereadable(newname)
+				if newname =~ '[\*\?\[\]]'
+					if glob(newname) != ''
+						return pivot
+					endif
+				elseif filereadable(newname)
 					return pivot
 				elseif isdirectory(newname)
 					return pivot
@@ -243,11 +285,22 @@ function! s:find_root(path, markers)
 				break
 			endif
 		endwhile
-        return ''
-    endfunc
+		return ''
+	endfunc
+	if a:path == '%'
+		if exists('b:asyncrun_root') && b:asyncrun_root != ''
+			return b:asyncrun_root
+		elseif exists('t:asyncrun_root') && t:asyncrun_root != ''
+			return t:asyncrun_root
+		elseif exists('g:asyncrun_root') && g:asyncrun_root != ''
+			return g:asyncrun_root
+		endif
+	endif
 	let root = s:guess_root(a:path, a:markers)
-	if len(root)
+	if root != ''
 		return asclib#path#abspath(root)
+	elseif a:strict != 0
+		return ''
 	endif
 	" Not found: return parent directory of current file / file itself.
 	let fullname = asclib#path#abspath(a:path)
@@ -267,9 +320,12 @@ function! asclib#path#get_root(path, ...)
 		let markers = g:asclib_path_rootmarks
 	endif
 	if a:0 > 0
-		let markers = a:1
+		if type(a:1) == type([])
+			let markers = a:1
+		endif
 	endif
-	let l:hr = s:find_root(a:path, markers)
+	let strict = (a:0 >= 2)? (a:2) : 0
+	let l:hr = s:find_root(a:path, markers, strict)
 	if s:windows != 0
 		let l:hr = join(split(l:hr, '/', 1), "\\")
 	endif
@@ -302,19 +358,52 @@ endfunc
 " path to name
 "----------------------------------------------------------------------
 function! asclib#path#cachedir(cache_dir, root_dir, filename)
-    if asclib#path#isabs(a:filename)
-        return a:filename
-    endif
-    let l:file_path = asclib#path#stripslash(a:root_dir) . '/' . a:filename
+	if asclib#path#isabs(a:filename)
+		return a:filename
+	endif
+	let l:file_path = asclib#path#stripslash(a:root_dir) . '/' . a:filename
 	let cache_dir = a:cache_dir
-    if cache_dir != ""
-        " Put the tag file in the cache dir instead of inside the
-        " project root.
-        let l:file_path = cache_dir . '/' . tr(l:file_path, '\/: ', '---_')
-        let l:file_path = substitute(l:file_path, '/\-', '/', '')
-    endif
-    let l:file_path = asclib#path#normalize(l:file_path)
-    return l:file_path
+	if cache_dir != ""
+		" Put the tag file in the cache dir instead of inside the
+		" project root.
+		let l:file_path = cache_dir . '/' . tr(l:file_path, '\/: ', '---_')
+		let l:file_path = substitute(l:file_path, '/\-', '/', '')
+	endif
+	let l:file_path = asclib#path#normalize(l:file_path)
+	return l:file_path
 endfunc
+
+
+"----------------------------------------------------------------------
+" push current dir in stack and switch dir to path
+"----------------------------------------------------------------------
+function! asclib#path#push_dir(path)
+	if !exists('s:dir_stack')
+		let s:dir_stack = []
+	endif
+	let previous = getcwd()
+	let s:dir_stack += [previous]
+	call asclib#path#chdir(a:path)
+	return previous
+endfunc
+
+
+"----------------------------------------------------------------------
+" pop current dir in stack
+"----------------------------------------------------------------------
+function! asclib#path#pop_dir()
+	if !exists('s:dir_stack')
+		let s:dir_stack = []
+	endif
+	let size = len(s:dir_stack)
+	if size == 0
+		return ''
+	endif
+	let previous = s:dir_stack[size - 1]
+	call remove(s:dir_stack, size - 1)
+	call asclib#path#chdir(previous)
+	return previous
+endfunc
+
 
 

@@ -10,6 +10,7 @@
 #     * optionally:
 #         set $_Z_CMD in .bashrc/.zshrc to change the command (default z).
 #         set $_Z_DATA in .bashrc/.zshrc to change the datafile (default ~/.z).
+#         set $_Z_MAX_SCORE lower to age entries out faster (default 9000).
 #         set $_Z_NO_RESOLVE_SYMLINKS to prevent symlink resolution.
 #         set $_Z_NO_PROMPT_COMMAND if you're handling PROMPT_COMMAND yourself.
 #         set $_Z_EXCLUDE_DIRS to an array of directories to exclude.
@@ -21,6 +22,7 @@
 #     * z -r foo  # cd to highest ranked dir matching foo
 #     * z -t foo  # cd to most recently accessed dir matching foo
 #     * z -l foo  # list matches instead of cd
+#     * z -e foo  # echo the best match, don't cd
 #     * z -c foo  # restrict matches to subdirs of $PWD
 
 [ -d "${_Z_DATA:-$HOME/.z}" ] && {
@@ -61,7 +63,8 @@ _z() {
 
         # maintain the data file
         local tempfile="$datafile.$RANDOM"
-        _z_dirs | awk -v path="$*" -v now="$(date +%s)" -F"|" '
+        local score=${_Z_MAX_SCORE:-9000}
+        _z_dirs | awk -v path="$*" -v now="$(date +%s)" -v score=$score -F"|" '
             BEGIN {
                 rank[path] = 1
                 time[path] = now
@@ -78,7 +81,7 @@ _z() {
                 count += $2
             }
             END {
-                if( count > 9000 ) {
+                if( count > score ) {
                     # aging
                     for( x in rank ) print x "|" 0.99*rank[x] "|" time[x]
                 } else for( x in rank ) print x "|" rank[x] "|" time[x]
@@ -88,7 +91,7 @@ _z() {
         if [ $? -ne 0 -a -f "$datafile" ]; then
             env rm -f "$tempfile"
         else
-            [ "$_Z_OWNER" ] && chown $_Z_OWNER:$(id -ng $_Z_OWNER) "$tempfile"
+            [ "$_Z_OWNER" ] && chown $_Z_OWNER:"$(id -ng $_Z_OWNER)" "$tempfile"
             env mv -f "$tempfile" "$datafile" || env rm -f "$tempfile"
         fi
 
@@ -109,20 +112,21 @@ _z() {
 
     else
         # list/go
+        local echo fnd last list opt typ
         while [ "$1" ]; do case "$1" in
-            --) while [ "$1" ]; do shift; local fnd="$fnd${fnd:+ }$1";done;;
-            -*) local opt=${1:1}; while [ "$opt" ]; do case ${opt:0:1} in
-                    c) local fnd="^$PWD $fnd";;
-                    e) local echo=echo;;
+            --) while [ "$1" ]; do shift; fnd="$fnd${fnd:+ }$1";done;;
+            -*) opt=${1:1}; while [ "$opt" ]; do case ${opt:0:1} in
+                    c) fnd="^$PWD $fnd";;
+                    e) echo=1;;
                     h) echo "${_Z_CMD:-z} [-cehlrtx] args" >&2; return;;
-                    l) local list=1;;
-                    r) local typ="rank";;
-                    t) local typ="recent";;
+                    l) list=1;;
+                    r) typ="rank";;
+                    t) typ="recent";;
                     x) sed -i -e "\:^${PWD}|.*:d" "$datafile";;
                 esac; opt=${opt:1}; done;;
-             *) local fnd="$fnd${fnd:+ }$1";;
-        esac; local last=$1; [ "$#" -gt 0 ] && shift; done
-        [ "$fnd" -a "$fnd" != "^$PWD " ] || local list=1
+             *) fnd="$fnd${fnd:+ }$1";;
+        esac; last=$1; [ "$#" -gt 0 ] && shift; done
+        [ "$fnd" -a "$fnd" != "^$PWD " ] || list=1
 
         # if we hit enter on a completion just go there
         case "$last" in
@@ -136,17 +140,14 @@ _z() {
         local cd
         cd="$( < <( _z_dirs ) awk -v t="$(date +%s)" -v list="$list" -v typ="$typ" -v q="$fnd" -F"|" '
             function frecent(rank, time) {
-                # relate frequency and time
-                dx = t - time
-                if( dx < 3600 ) return rank * 4
-                if( dx < 86400 ) return rank * 2
-                if( dx < 604800 ) return rank / 2
-                return rank / 4
+              # relate frequency and time
+              dx = t - time
+              return rank * (3.75/((0.0001 * dx + 1) + 0.25))
             }
             function output(matches, best_match, common) {
                 # list or return the desired directory
                 if( list ) {
-                    cmd = "sort -n >&2"
+                    cmd = "sort -g >&2"
                     for( x in matches ) {
                         if( matches[x] ) {
                             printf "%-10s %s\n", matches[x], x | cmd

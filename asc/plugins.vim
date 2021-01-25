@@ -3,14 +3,28 @@
 "----------------------------------------------------------------------
 let s:home = fnamemodify(resolve(expand('<sfile>:p')), ':h:h')
 let s:windows = has('win32') || has('win64') || has('win95') || has('win16')
-
+let s:gui = has('gui_running')
 
 " echo s:path('tools/win32')
+if has('nvim')
+	if exists('g:GuiLoaded')
+		if g:GuiLoaded != 0
+			let s:gui = 1
+		endif
+	elseif exists('*nvim_list_uis') && len(nvim_list_uis()) > 0
+		let uis = nvim_list_uis()[0]
+		let s:gui = get(uis, 'ext_termcolors', 0)? 0 : 1
+	elseif exists("+termguicolors") && (&termguicolors) != 0
+		let s:gui = 1
+	endif
+endif
+
+let g:asc#has_gui = s:gui
 
 
-"-----------------------------------------------------
+"----------------------------------------------------------------------
 " netrw
-"-----------------------------------------------------
+"----------------------------------------------------------------------
 let g:netrw_liststyle = 1
 let g:netrw_winsize = 25
 let g:netrw_list_hide = '\.swp\($\|\t\),\.py[co]\($\|\t\),\.o\($\|\t\),\.bak\($\|\t\),\(^\|\s\s\)\zs\.\S\+'
@@ -34,6 +48,7 @@ endif
 let s:ignore = ['.obj', '.so', '.a', '~', '.tmp', '.egg', '.class', '.jar']
 let s:ignore += ['.tar.gz', '.zip', '.7z', '.bz2', '.rar', '.jpg', '.png']
 let s:ignore += ['.chm', '.docx', '.xlsx', '.pptx', '.pdf', '.dll', '.pyd']
+let s:ignore += ['.xls', '.mobi', '.mp4', '.mp3']
 
 for s:extname in s:ignore
 	let s:pattern = escape(s:extname, '.~') . '\($\|\t\),'
@@ -59,19 +74,6 @@ endif
 let g:ft_man_open_mode = 'vert'
 
 
-"----------------------------------------------------------------------
-" NERDTree
-"----------------------------------------------------------------------
-let NERDTreeIgnore = ['\~$', '\$.*$', '\.swp$', '\.pyc$', '#.\{-\}#$']
-let s:ignore += ['.xls', '.mobi', '.mp4', '.mp3']
-
-for s:extname in s:ignore
-	let NERDTreeIgnore += [escape(s:extname, '.~$')]
-endfor
-
-let NERDTreeRespectWildIgnore = 1
-
-" let g:vinegar_nerdtree_as_netrw = 1
 
 
 "----------------------------------------------------------------------
@@ -89,6 +91,7 @@ function! s:setup_dirvish()
 	let name = '^' . escape(text, '.*[]~\') . '[/*|@=|\\*]\=\%($\|\s\+\)'
 	" let name = '\V\^'.escape(text, '\').'\$'
 	" echom "search: ".name
+	exec "normal gg"
 	call search(name, 'wc')
 	noremap <silent><buffer> ~ :Dirvish ~<cr>
 	noremap <buffer> % :e %
@@ -120,26 +123,6 @@ augroup MyPluginSetup
 	autocmd FileType dirvish call s:setup_dirvish()
 augroup END
 
-
-
-"-----------------------------------------------------
-" YouCompleteMe
-"-----------------------------------------------------
-let g:ycm_add_preview_to_completeopt = 0
-let g:ycm_show_diagnostics_ui = 0
-let g:ycm_server_log_level = 'info'
-let g:ycm_min_num_identifier_candidate_chars = 2
-let g:ycm_collect_identifiers_from_comments_and_strings = 1
-let g:ycm_complete_in_strings=1
-let g:ycm_key_invoke_completion = '<c-z>'
-set completeopt=menu,menuone
-
-" noremap <c-z> <NOP>
-
-let g:ycm_semantic_triggers =  {
-			\ 'c,cpp,python,java,go,erlang,perl': ['re!\w{2}'],
-			\ 'cs,lua,javascript': ['re!\w{2}'],
-			\ }
 
 
 "----------------------------------------------------------------------
@@ -190,30 +173,6 @@ let g:ctrlp_root_markers = ['.project', '.root', '.svn', '.git']
 let g:ctrlp_working_path = 0
 
 
-"----------------------------------------------------------------------
-" LeaderF
-"----------------------------------------------------------------------
-let g:Lf_RootMarkers = ['.project', '.root', '.svn', '.git']
-let g:Lf_WorkingDirectoryMode = 'Ac'
-let g:Lf_WindowHeight = 0.30
-let g:Lf_CacheDirectory = expand('~/.vim/cache')
-let g:Lf_ShowRelativePath = 0
-let g:Lf_HideHelp = 1
-
-let g:Lf_WildIgnore = {
-            \ 'dir': ['.svn','.git','.hg'],
-            \ 'file': ['*.sw?','~$*','*.bak','*.exe','*.o','*.so','*.py[co]']
-			\ }
-
-let g:Lf_MruFileExclude = ['*.so', '*.exe', '*.py[co]', '*.sw?', '~$*', '*.bak', '*.tmp', '*.dll']
-let g:Lf_MruMaxFiles = 2048
-let g:Lf_StlColorscheme = 'powerline'
-let g:Lf_ShortcutF = '<c-p>'
-let g:Lf_ShortcutB = '<m-n>'
-let g:Lf_StlSeparator = { 'left': '', 'right': '', 'font': '' }
-let g:Lf_PreviewResult = {'Function':0, 'BufTag':0}
-
-
 
 "----------------------------------------------------------------------
 " vim-notes
@@ -242,6 +201,7 @@ let g:signify_sign_delete            = '_'
 let g:signify_sign_delete_first_line = '‾'
 let g:signify_sign_change            = '~'
 let g:signify_sign_changedelete      = g:signify_sign_change
+let g:signify_as_gitgutter           = 1
 
 let g:signify_vcs_cmds = {
 			\ 'git': 'git diff --no-color --diff-algorithm=histogram --no-ext-diff -U0 -- %f',
@@ -259,25 +219,51 @@ let g:startify_session_dir = '~/.vim/session'
 
 
 "----------------------------------------------------------------------
-" vimmake / asyncrun
+" asyncrun / vimmake 
 "----------------------------------------------------------------------
-let g:vimmake_cwd = 1
-let g:asyncrun_timer = 50
-let g:vimmake_build_timer = 50
-let g:vimmake_build_name = 'make'
-let g:vimmake_save = 1
-let s:python = executable('python2')? 'python2' : 'python'
+let g:asyncrun_timer = 64
+let s:python = executable('python3')? 'python3' : 'python'
 let s:script = fnamemodify(resolve(expand('<sfile>:p')), ':h:h')
 let s:launch = s:script . '/lib/launch.py'
 
 if filereadable(s:launch)
-	let s:hz = g:vimmake_build_timer * 10 * 80 / 100
-	let g:vimmake_build_shell_bak = s:python
-	let g:vimmake_build_shellflag = s:launch
+	let s:hz = g:asyncrun_timer * 10 * 80 / 100
 	let g:asyncrun_shell_bak = s:python
 	let g:asyncrun_shellflag = s:launch
 	let $VIM_LAUNCH_HZ = ''. s:hz
 endif
+
+if s:windows != 0
+	let g:asyncrun_encs = 'gbk'
+endif
+
+let g:asyncrun_open = 6
+
+if executable('rg')
+	let g:vimmake_grep_mode = 'rg'
+endif
+
+
+
+"----------------------------------------------------------------------
+" asynctasks
+"----------------------------------------------------------------------
+let s:config = (s:windows)? 'tasks.win32.ini' : 'tasks.linux.ini'
+let g:asynctasks_extra_config = [s:home . '/'. s:config]
+let g:asynctasks_term_pos = (s:windows && s:gui)? 'external' : 'tab'
+let g:asynctasks_template = 0
+let g:asynctasks_confirm = 0
+" let g:asynctasks_rtp_config = 'etc/tasks.ini'
+
+
+"----------------------------------------------------------------------
+" text
+"----------------------------------------------------------------------
+let g:vim_dict_config = { 
+			\ "text" : 'text',
+			\ "markdown" : 'text',
+			\ "html": 'html,javascript,css,css3',
+			\ }
 
 
 "----------------------------------------------------------------------
@@ -286,6 +272,14 @@ endif
 let delimitMate_expand_cr = 1
 let delimitMate_expand_space = 1
 let delimitMate_offByDefault = 1
+
+
+"----------------------------------------------------------------------
+" terminal help
+"----------------------------------------------------------------------
+let g:terminal_close = 1
+let g:terminal_list = 0
+let g:terminal_fixheight =1
 
 
 "----------------------------------------------------------------------
@@ -308,7 +302,14 @@ let g:gutentags_project_root = ['.root']
 let g:gutentags_ctags_tagfile = '.tags'
 
 " let g:gutentags_modules = ['ctags', 'gtags_cscope']
-let g:gutentags_cache_dir = expand('~/.cache/tags')
+if exists('g:gutentags_cache_dir') == 0
+	let g:gutentags_cache_dir = expand('~/.cache/tags')
+endif
+
+if !isdirectory(g:gutentags_cache_dir)
+	call mkdir(g:gutentags_cache_dir, 'p')
+endif
+
 let g:gutentags_ctags_extra_args = []
 let g:gutentags_ctags_extra_args = ['--fields=+niazS', '--extra=+q']
 let g:gutentags_ctags_extra_args += ['--c++-kinds=+px']
@@ -322,81 +323,14 @@ if has('win32') || has('win16') || has('win64') || has('win95')
 	let g:gutentags_ctags_extra_args += ['--output-format=e-ctags']
 endif
 
-let g:gutentags_plus_switch = 1
+let g:gutentags_plus_switch = 0
 
-
-"----------------------------------------------------------------------
-" ale
-"----------------------------------------------------------------------
-let g:ale_linters_explicit = 1
-let g:ale_completion_delay = 500
-let g:ale_echo_delay = 20
-let g:ale_lint_delay = 500
-let g:ale_echo_msg_format = '[%linter%] %code: %%s'
-" let g:ale_lint_on_text_changed = 'normal'
-" let g:ale_lint_on_insert_leave = 1
-
-if s:windows == 0 && has('win32unix') == 0
-	let g:ale_command_wrapper = 'nice -n5'
-endif
 
 
 "----------------------------------------------------------------------
-" Ycm White List
+" styles
 "----------------------------------------------------------------------
-let g:ycm_filetype_whitelist = { 
-			\ "c":1,
-			\ "cpp":1, 
-			\ "objc":1,
-			\ "objcpp":1,
-			\ "python":1,
-			\ "java":1,
-			\ "javascript":1,
-			\ "coffee":1,
-			\ "vim":1, 
-			\ "go":1,
-			\ "cs":1,
-			\ "lua":1,
-			\ "perl":1,
-			\ "perl6":1,
-			\ "php":1,
-			\ "ruby":1,
-			\ "rust":1,
-			\ "erlang":1,
-			\ "asm":1,
-			\ "nasm":1,
-			\ "masm":1,
-			\ "tasm":1,
-			\ "asm68k":1,
-			\ "asmh8300":1,
-			\ "asciidoc":1,
-			\ "basic":1,
-			\ "vb":1,
-			\ "make":1,
-			\ "cmake":1,
-			\ "html":1,
-			\ "css":1,
-			\ "less":1,
-			\ "json":1,
-			\ "cson":1,
-			\ "typedscript":1,
-			\ "haskell":1,
-			\ "lhaskell":1,
-			\ "lisp":1,
-			\ "scheme":1,
-			\ "sdl":1,
-			\ "sh":1,
-			\ "zsh":1,
-			\ "bash":1,
-			\ "man":1,
-			\ "markdown":1,
-			\ "matlab":1,
-			\ "maxima":1,
-			\ "dosini":1,
-			\ "conf":1,
-			\ "config":1,
-			\ "zimbu":1,
-			\ "ps1":1,
-			\ }
+let g:jellybeans_use_term_italics = 0
+let g:jellybeans_use_gui_italics = 0
 
 

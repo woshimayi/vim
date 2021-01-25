@@ -7,4 +7,10 @@ tags
 .cscope
 .o
 .class
-
+.tasks
+*.exe
+*.wav
+*.pyc
+.tasks
+tools/scratch
+/doc/tags

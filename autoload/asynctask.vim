@@ -3,7 +3,7 @@
 " asynctask.vim - 
 "
 " Created by skywind on 2017/07/30
-" Last change: 2017/07/30 14:59:19
+" Last Modified: 2020/01/20 02:26
 "
 "======================================================================
 
@@ -56,7 +56,7 @@ function! s:chdir(path)
 	if has('nvim')
 		let cmd = haslocaldir()? 'lcd' : (haslocaldir(-1, 0)? 'tcd' : 'cd')
 	else
-		let cmd = haslocaldir()? 'lcd' : 'cd'
+		let cmd = haslocaldir()? ((haslocaldir() == 1)? 'lcd' : 'tcd') : 'cd'
 	endif
 	silent execute cmd . ' '. fnameescape(a:path)
 endfunc

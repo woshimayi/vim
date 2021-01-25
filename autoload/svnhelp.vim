@@ -16,14 +16,14 @@ endfunc
 " svn main
 "----------------------------------------------------------------------
 function! svnhelp#svn(command)
-	let hr = vimmake#python_system('svn '. a:command)
-	let s:shell_error = g:vimmake_shell_error
+	let hr = asclib#core#system('svn '. a:command)
+	let s:shell_error = g:asclib#core#shell_error
 	return hr
 endfunc
 
 function! svnhelp#git(command)
-	let hr = vimmake#python_system('git '. a:command)
-	let s:shell_error = g:vimmake_shell_error
+	let hr = asclib#core#system('git '. a:command)
+	let s:shell_error = g:asclib#core#shell_error
 	return hr
 endfunc
 
@@ -32,13 +32,13 @@ endfunc
 " returns none(0), svn(1), git(2)
 "----------------------------------------------------------------------
 function! svnhelp#svn_or_git(target)
-	let root = vimmake#get_root(a:target, ['.svn', '.git'])
+	let root = asyncrun#get_root(a:target, ['.svn', '.git'])
 	if root == ''
 		return 0
 	endif
-	if isdirectory(vimmake#path_join(root, '.svn'))
+	if isdirectory(asclib#path#join(root, '.svn'))
 		return 1
-	elseif isdirectory(vimmake#path_join(root, '.git'))
+	elseif isdirectory(asclib#path#join(root, '.git'))
 		return 2
 	endif
 	return 0
@@ -64,13 +64,11 @@ endfunc
 function! svnhelp#git_name(target, revision)
 	let filename = fnamemodify(expand(a:target), ':p')
 	let filedir = fnamemodify(filename, ':h')
-	let cd = haslocaldir()? 'lcd ' : 'cd '
 	let cmd = 'ls-tree --full-name --name-only '.a:revision
-	let savedir = getcwd()
 	let cmd.= ' '.shellescape(filename)
-	exec cd . fnameescape(filedir)
+	call asclib#path#push_dir(filedir)
 	let hr = svnhelp#git(cmd)
-	exec cd . savedir
+	call asclib#path#pop_dir()
 	if s:shell_error
 		return ''
 	endif
@@ -88,11 +86,9 @@ function! svnhelp#git_cat(target, revision)
 	let cmd.= ' > '. shellescape(tmp)
 	let filename = fnamemodify(expand(a:target), ':p')
 	let filedir = fnamemodify(filename, ':h')
-	let savedir = getcwd()
-	let cd = haslocaldir()? 'lcd ' : 'cd '
-	exec cd. fnameescape(filedir)
+	call asclib#path#push_dir(filedir)
 	call svnhelp#git(cmd)
-	exec cd. savedir
+	call asclib#path#pop_dir()
 	if s:shell_error == 0
 		return tmp
 	endif
@@ -162,9 +158,9 @@ function! svnhelp#svn_log(filename)
 		call svnhelp#errmsg('not a svn/git repository')
 		return
 	elseif mode == 1
-		exec 'VimMake! -raw svn log '.name
+		exec 'AsyncRun! -raw svn log '.name
 	else
-		exec 'VimMake! -raw -cwd='.home.' git log '.name
+		exec 'AsyncRun! -raw -cwd='.home.' git log '.name
 	endif
 endfunc
 
@@ -177,9 +173,9 @@ function! svnhelp#svn_add(filename)
 		call svnhelp#errmsg('not a svn/git repository')
 		return
 	elseif mode == 1
-		exec 'VimMake! -raw svn add '.name
+		exec 'AsyncRun! -raw svn add '.name
 	else
-		exec 'VimMake! -raw -cwd='.home'.' git add '.name
+		exec 'AsyncRun! -raw -cwd='.home.' git add '.name
 	endif
 endfunc
 
@@ -282,23 +278,24 @@ endfunc
 function! svnhelp#tinfo() abort
 	let info = {}
 	let info.mode = 0
-	let root = vimmake#get_root('%', ['.svn', '.git'])
+	let root = asyncrun#get_root('%', ['.svn', '.git'])
 	let info.root = root
 	let info.filename = expand('%:t')
 	let info.filedir = expand('%:p:h')
 	let info.filepath = expand('%:p')
-	let cd = haslocaldir()? 'lcd ' : 'cd '
 	let savecwd = getcwd()
 	if root == ''
 		return info
 	endif
-	exec cd . root
+	call asclib#path#push_dir(root)
 	let info.filerel = expand('%')
-	exec cd . savecwd
+	call asclib#path#pop_dir()
 	let info.filerel = substitute(info.filerel, '\\', '/', 'g')
-	if isdirectory(vimmake#path_join(root, '.svn'))
+	if isdirectory(asclib#path#join(root, '.svn'))
 		let info.mode = 1
-	elseif isdirectory(vimmake#path_join(root, '.git'))
+	elseif isdirectory(asclib#path#join(root, '.git'))
+		let info.mode = 2
+	elseif filereadable(asclib#path#join(root, '.git'))
 		let info.mode = 2
 	else
 		return info
@@ -361,6 +358,32 @@ function! svnhelp#tp_diff() abort
 		call svnhelp#tsvn('/command:diff /path:'.shellescape(info.root))
 	else
 		call svnhelp#tgit('/command:diff /path:'.shellescape(info.root))
+	endif
+endfunc
+
+function! svnhelp#tp_push() abort
+	let info = svnhelp#tinfo()
+	if info.mode == 0
+		call svnhelp#errmsg('not in a git repository')
+		return 0
+	endif
+	if info.mode == 1
+		call svnhelp#errmsg('not in a git repository')
+	else
+		call svnhelp#tgit('/command:push /path:'.shellescape(info.root))
+	endif
+endfunc
+
+function! svnhelp#tp_sync() abort
+	let info = svnhelp#tinfo()
+	if info.mode == 0
+		call svnhelp#errmsg('not in a git repository')
+		return 0
+	endif
+	if info.mode == 1
+		call svnhelp#errmsg('not in a git repository')
+	else
+		call svnhelp#tgit('/command:sync /path:'.shellescape(info.root))
 	endif
 endfunc
 

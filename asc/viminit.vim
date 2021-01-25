@@ -1,13 +1,20 @@
+"======================================================================
+"
 " viminit.vim - Vim initialize script
 "
 " Maintainer: skywind3000 (at) gmail.com
-" Last Modified: 2018/02/10 12:52
+" Last Modified: 2020/03/16 23:52
 "
 " Tiny script which makes vim become neat and handy, supports vim.tiny
 "
+"======================================================================
+
 " vim: set et fenc=utf-8 ff=unix sts=8 sw=4 ts=4 :
 
-" initialize basic settings
+
+"----------------------------------------------------------------------
+" core initialize
+"----------------------------------------------------------------------
 set nocompatible
 
 set shiftwidth=4
@@ -32,18 +39,12 @@ if has('multi_byte')
 	set enc=utf-8
 endif
 
-if has('mouse')
-	"set mouse=c
-endif
 
 
-"set nobackup
-"set nowritebackup
-"set noswapfile
-
-
+"----------------------------------------------------------------------
 " map CTRL_HJKL to move cursor in all mode
 " config terminal bind <backspace> to ASCII code 127
+"----------------------------------------------------------------------
 noremap <C-h> <left>
 noremap <C-j> <down>
 noremap <C-k> <up>
@@ -54,7 +55,9 @@ inoremap <C-k> <up>
 inoremap <C-l> <right>
 
 
-" use hotkey to change buffer
+"----------------------------------------------------------------------
+" buffer keymap
+"----------------------------------------------------------------------
 noremap <silent>\bn :bn<cr>
 noremap <silent>\bp :bp<cr>
 noremap <silent>\bm :bm<cr>
@@ -64,16 +67,40 @@ noremap <silent>\bl :ls<cr>
 noremap <silent>\bb :ls<cr>:b
 noremap <silent>\nh :nohl<cr>
 
-" use hotkey to operate tab
-noremap <silent><tab> <nop>
-noremap <silent><tab>m :tabnew<cr>
-noremap <silent><tab>e :tabclose<cr>
-noremap <silent><tab>n :tabn<cr>
-noremap <silent><tab>p :tabp<cr>
-noremap <silent><tab>f <c-i>
-noremap <silent><tab>b <c-o>
-noremap <silent>\t :tabnew<cr>
-noremap <silent>\g :tabclose<cr>
+
+"----------------------------------------------------------------------
+" window keymaps
+"----------------------------------------------------------------------
+noremap <silent>\ww <c-w>w
+noremap <silent>\wv <c-w>v
+noremap <silent>\ws <c-w>s
+noremap <silent>\wh <c-w>h
+noremap <silent>\wj <c-w>j
+noremap <silent>\wk <c-w>k
+noremap <silent>\wl <c-w>l
+noremap <silent>\wc <c-w>c
+noremap <silent>\wo <c-w>o
+noremap <silent>\w1 :1wincmd w<cr>
+noremap <silent>\w2 :2wincmd w<cr>
+noremap <silent>\w3 :3wincmd w<cr>
+noremap <silent>\w4 :4wincmd w<cr>
+noremap <silent>\w5 :5wincmd w<cr>
+noremap <silent>\w6 :6wincmd w<cr>
+noremap <silent>\w7 :7wincmd w<cr>
+noremap <silent>\w8 :8wincmd w<cr>
+noremap <silent>\w9 :9wincmd w<cr>
+
+
+"----------------------------------------------------------------------
+" tab keymap
+"----------------------------------------------------------------------
+noremap <silent>\tc :tabnew<cr>
+noremap <silent>\tq :tabclose<cr>
+noremap <silent>\tn :tabnext<cr>
+noremap <silent>\tp :tabprev<cr>
+noremap <silent>\to :tabonly<cr>
+noremap <silent>\th :-tabmove<cr>
+noremap <silent>\tl :+tabmove<cr>
 noremap <silent>\1 :tabn 1<cr>
 noremap <silent>\2 :tabn 2<cr>
 noremap <silent>\3 :tabn 3<cr>
@@ -88,7 +115,9 @@ noremap <silent><s-tab> :tabnext<CR>
 inoremap <silent><s-tab> <ESC>:tabnext<CR>
 
 
-" keymap to switch tab in both gui and terminal (need config)
+"----------------------------------------------------------------------
+" tab keymap in gvim
+"----------------------------------------------------------------------
 if has('gui_running')
 	noremap <silent><c-tab> :tabprev<CR>
 	inoremap <silent><c-tab> <ESC>:tabprev<CR>
@@ -114,7 +143,10 @@ if has('gui_running')
 	inoremap <silent><m-0> <ESC>:tabn 10<cr>
 endif
 
-" cmd+N to switch tab quickly in macvim
+
+"----------------------------------------------------------------------
+" tab keymap in macvim
+"----------------------------------------------------------------------
 if has("gui_macvim")
 	set macmeta
 	noremap <silent><c-tab> :tabprev<CR>
@@ -143,18 +175,25 @@ if has("gui_macvim")
 	inoremap <silent><d-o> <ESC>:browse tabnew<cr>
 endif
 
-" fast file/tab actions in gui
+
+"----------------------------------------------------------------------
+" gvim keymaps
+"----------------------------------------------------------------------
 if has('gui_running')
 	noremap <silent><m-t> :tabnew<cr>
 	inoremap <silent><m-t> <ESC>:tabnew<cr>
 	noremap <silent><m-w> :tabclose<cr>
 	inoremap <silent><m-w> <ESC>:tabclose<cr>
+	noremap <silent><m-v> :close<cr>
+	inoremap <silent><m-v> <ESC>:close<cr>
 	noremap <m-s> :w<cr>
 	inoremap <m-s> <esc>:w<cr>
 endif
 
 
+"----------------------------------------------------------------------
 " miscs
+"----------------------------------------------------------------------
 set scrolloff=2
 set showmatch
 set display=lastline
@@ -162,9 +201,7 @@ set listchars=tab:\|\ ,trail:.,extends:>,precedes:<
 set matchtime=3
 
 " leader definition
-noremap <silent>\w :w<cr>
-noremap <silent>\q :q<cr>
-noremap <silent>\l :close<cr>
+noremap <silent>Q :confirm qall<cr>
 
 " window management
 noremap <tab>h <c-w>h
@@ -172,10 +209,20 @@ noremap <tab>j <c-w>j
 noremap <tab>k <c-w>k
 noremap <tab>l <c-w>l
 noremap <tab>w <c-w>w
+noremap <tab>c <c-w>c
+noremap <tab>+ <c-w>+
+noremap <tab>- <c-w>-
+noremap <tab>, <c-w>< 
+noremap <tab>. <c-w>>
+noremap <tab>= <c-w>=
+noremap <tab>s <c-w>s
+noremap <tab>v <c-w>v
+noremap <tab>o <c-w>o
 
-" ctrl-enter to insert a empty line below, shift-enter to insert above
-noremap <tab>o o<ESC>
-noremap <tab>O O<ESC>
+" tab enhancement
+noremap <silent><tab> <nop>
+noremap <silent><tab>f <c-i>
+noremap <silent><tab>b <c-o>
 
 " insert mode as emacs
 inoremap <c-a> <home>
@@ -194,6 +241,43 @@ cnoremap <c-f> <c-d>
 cnoremap <c-b> <left>
 cnoremap <c-d> <del>
 cnoremap <c-_> <c-k>
+
+
+"----------------------------------------------------------------------
+" unimpaired
+"----------------------------------------------------------------------
+nnoremap <silent>[a :previous<cr>
+nnoremap <silent>]a :next<cr>
+nnoremap <silent>[A :first<cr>
+nnoremap <silent>]A :last<cr>
+nnoremap <silent>[b :bprevious<cr>
+nnoremap <silent>]b :bnext<cr>
+nnoremap <silent>[w :tabprevious<cr>
+nnoremap <silent>]w :tabnext<cr>
+nnoremap <silent>[W :tabfirst<cr>
+nnoremap <silent>]W :tablast<cr>
+nnoremap <silent>[q :cprevious<cr>
+nnoremap <silent>]q :cnext<cr>
+nnoremap <silent>[Q :cfirst<cr>
+nnoremap <silent>]Q :clast<cr>
+nnoremap <silent>[l :lprevious<cr>
+nnoremap <silent>]l :lnext<cr>
+nnoremap <silent>[L :lfirst<cr>
+nnoremap <silent>]L :llast<cr>
+nnoremap <silent>[t :tprevious<cr>
+nnoremap <silent>]t :tnext<cr>
+nnoremap <silent>[T :tfirst<cr>
+nnoremap <silent>]T :tlast<cr>
+
+" unimpaired options
+nnoremap <silent>[oc :setl cursorline<cr>
+nnoremap <silent>]oc :setl nocursorline<cr>
+nnoremap <silent>[os :setl spell<cr>
+nnoremap <silent>]os :setl nospell<cr>
+nnoremap <silent>[op :setl paste<cr>
+nnoremap <silent>]op :setl nopaste<cr>
+nnoremap <silent>[ow :setl wrap<cr>
+nnoremap <silent>]ow :setl nowrap<cr>
 
 
 

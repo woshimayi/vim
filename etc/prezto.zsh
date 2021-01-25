@@ -6,7 +6,7 @@ if [ ! -f "$ANTIGEN" ]; then
 	echo "Installing antigen ..."
 	[ ! -d "$HOME/.local" ] && mkdir -p "$HOME/.local" 2> /dev/null
 	[ ! -d "$HOME/.local/bin" ] && mkdir -p "$HOME/.local/bin" 2> /dev/null
-	[ ! -f "$HOME/.z" ] && touch "$HOME/.z"
+	# [ ! -f "$HOME/.z" ] && touch "$HOME/.z"
 	URL="http://git.io/antigen"
 	TMPFILE="/tmp/antigen.zsh"
 	if [ -x "$(which curl)" ]; then
@@ -29,7 +29,9 @@ fi
 
 
 # Load local bash/zsh compatible settings
-_INIT_SH_NOFUN=1
+INIT_SH_NOFUN=1
+INIT_SH_NOLOG=1
+DISABLE_Z_PLUGIN=1
 [ -f "$HOME/.local/etc/init.sh" ] && source "$HOME/.local/etc/init.sh"
 
 # exit for non-interactive shell
@@ -57,6 +59,7 @@ DISABLE_CORRECTION="true"
 # Enable 256 color to make auto-suggestions look nice
 export TERM="xterm-256color"
 
+ZSH_AUTOSUGGEST_USE_ASYNC=1
 
 # Declare modules
 zstyle ':prezto:*:*' color 'yes'
@@ -75,10 +78,10 @@ zstyle ':prezto:load' pmodule \
 	'utility' \
 	'completion' \
 	'history-substring-search' \
-	'syntax-highlighting' \
 	'autosuggestions' \
 	'prompt' \
 
+	# 'autosuggestions' \
 
 # Initialize prezto
 antigen use prezto
@@ -87,6 +90,7 @@ antigen use prezto
 # default bundles
 antigen bundle rupa/z z.sh
 antigen bundle Vifon/deer
+antigen bundle zdharma/fast-syntax-highlighting
 # antigen bundle zsh-users/zsh-autosuggestions
 
 antigen bundle willghatch/zsh-cdr
@@ -134,13 +138,17 @@ ZSH_HIGHLIGHT_STYLES[assign]=none
 
 antigen apply
 
+# work around: fast syntax highlighting may crash zsh without this
+FAST_HIGHLIGHT[chroma-git]="chroma/-ogit.ch"
+
 # options
 unsetopt correct_all
+unsetopt share_history
 setopt prompt_subst
 
 setopt BANG_HIST                 # Treat the '!' character specially during expansion.
 setopt INC_APPEND_HISTORY        # Write to the history file immediately, not when the shell exits.
-setopt SHARE_HISTORY             # Share history between all sessions.
+# setopt SHARE_HISTORY             # Share history between all sessions.
 setopt HIST_EXPIRE_DUPS_FIRST    # Expire duplicate entries first when trimming history.
 setopt HIST_IGNORE_DUPS          # Don't record an entry that was just recorded again.
 setopt HIST_IGNORE_ALL_DUPS      # Delete old recorded entry if new entry is a duplicate.
@@ -177,7 +185,6 @@ bindkey '\ev' deer
 bindkey -s '\eu' 'ranger_cd\n'
 bindkey -s '\eOS' 'vim '
 
-alias ll='ls -l'
 
 # source function.sh if it exists
 [ -f "$HOME/.local/etc/function.sh" ] && . "$HOME/.local/etc/function.sh"
@@ -190,5 +197,6 @@ DISABLE_CORRECTION="true"
 # completion detail
 zstyle ':completion:*:complete:-command-:*:*' ignored-patterns '*.pdf|*.exe|*.dll'
 zstyle ':completion:*:*sh:*:' tag-order files
+
 
 

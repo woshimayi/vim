@@ -8,7 +8,7 @@ elseif has('win32unix')
 elseif has('unix') && (has('mac') || has('macunix'))
 	let g:asc_uname = 'darwin'
 elseif has('unix')
-	let s:uname = system("echo -n \"$(uname)\"")
+	let s:uname = substitute(system("uname"), '\s*\n$', '', 'g')
 	if v:shell_error == 0 && match(s:uname, 'Linux') >= 0
 		let g:asc_uname = 'linux'
 	elseif v:shell_error == 0 && match(s:uname, 'FreeBSD') >= 0
@@ -23,19 +23,31 @@ else
 endif
 
 
-let s:home = fnamemodify(resolve(expand('<sfile>:p')), ':h')
-let s:tool_name = (g:asc_uname == 'windows')? 'win32': g:asc_uname
-let g:vimmake_path = expand(s:home . '/tools/' . s:tool_name)
+"----------------------------------------------------------------------
+"- OptImport
+"----------------------------------------------------------------------
+IncScript site/opt/argtextobj.vim
+IncScript site/opt/indent-object.vim
+IncScript site/opt/apc.vim
 
+if has('gui_running')
+	IncScript site/opt/hexhigh.vim
+endif
 
-RefreshToolMode!
+runtime! macros/matchit.vim
+
 
 
 "----------------------------------------------------------------------
 "- Global Settings
 "----------------------------------------------------------------------
+let g:asyncrun_msys = 'd:/software/msys32'
 
-let g:ycm_goto_buffer_command = 'new-or-existing-tab'
+if has('patch-8.0.0')
+	set shortmess+=c
+endif
+
+set cpt=.,w,k
 
 
 "----------------------------------------------------------------------
@@ -43,10 +55,9 @@ let g:ycm_goto_buffer_command = 'new-or-existing-tab'
 "----------------------------------------------------------------------
 augroup SkywindGroup
 	au!
-	au FileType python setlocal shiftwidth=4 tabstop=4 noexpandtab omnifunc=pythoncomplete#Complete
-	au FileType lisp setlocal ts=8 sts=2 sw=2 et
-	au FileType scala setlocal sts=4 sw=4 noet
-	au FileType haskell setlocal et
+	" au FileType python setlocal shiftwidth=4 tabstop=4 noexpandtab omnifunc=pythoncomplete#Complete
+	au FileType python setlocal shiftwidth=4 tabstop=4 et omnifunc=python3complete#Complete
+	au FileType cpp setlocal commentstring=//\ %s
 augroup END
 
 
@@ -55,7 +66,7 @@ augroup END
 "----------------------------------------------------------------------
 let s:settings = {  
 	\ 'cygwin': 'd:/linux',
-	\ 'zeal': 'D:\Program Files\zeal-portable-0.5.0-windows-x86\zeal.exe',
+	\ 'zeal': 'D:\Program Files\zeal-portable\zeal.exe',
 	\ }
 
 let s:settings_win = {
@@ -96,90 +107,17 @@ endif
 "----------------------------------------------------------------------
 if has('win32') || has('win16') || has('win64') || has('win95')
 	noremap <space>hw :FileSwitch tabe e:/svn/doc/linwei/GTD.otl<cr>
-else
 endif
 
 
 "----------------------------------------------------------------------
-"- Vimmake
+"- miscs
 "----------------------------------------------------------------------
-let g:vimmake_run_guess = ['go']
-let g:vimmake_ftrun = {}
-let g:vimmake_ftrun['make'] = 'make -f'
-let g:vimmake_ftrun['zsh'] = 'zsh'
-let g:vimmake_ftrun['erlang'] = 'escript'
-let g:vimmake_ftmake = {}
-let g:vimmake_ftmake['go'] = 'go build -o "$(VIM_FILEDIR)/$(VIM_FILENOEXT).exe" "$(VIM_FILEPATH)" '
+let g:cppman_open_mode = '<auto>'
 
-let g:vimmake_extrun = {'hs': 'runghc', 'lisp': 'sbcl --script'}
+command! -bang -nargs=* -complete=file Make AsyncRun -program=make @ <args>
 
-let g:vimmake_extrun['scala'] = 'scala'
-let g:vimmake_extrun['es'] = 'escript'
-let g:vimmake_extrun['erl'] = 'escript'
-let g:vimmake_extrun['clj'] = 'clojure'
-let g:vimmake_extrun['hs'] = 'runghc'
-
-if has('win32') || has('win64') || has('win16') || has('win95')
-	let g:vimmake_extrun['scm'] = "d:\\linux\\bin\\guile.exe"
-	let g:vimmake_extrun['io'] = "d:\\dev\\IoLanguage\\bin\\io.exe"
-	let g:vimmake_extrun['pro'] = "start d:\\dev\\swipl\\bin\\swipl-win.exe -s"
-	let g:vimmake_extrun['pl'] = "start d:\\dev\\swipl\\bin\\swipl-win.exe -s"
-	let g:vimmake_build_encoding = 'gbk'
-	let g:asyncrun_encs = 'gbk'
-	let cp = "d:/dev/scala/scala-2.11.6/lib/scala-actors-2.11.0.jar;"
-	let cp.= "d:/dev/scala/scala-2.11.6/lib/akka-actor_2.11-2.3.4.jar"
-	let g:vimmake_extrun['scala'] = 'scala'
-	"let g:vimmake_extrun['scala'].= ' -cp '.fnameescape(cp)
-	let g:vimmake_extrun['gv'] = 'd:/dev/tools/graphviz/bin/dotty.exe'
-	let g:vimmake_extrun['dot'] = 'd:/dev/tools/graphviz/bin/dotty.exe'
-	let g:vimmake_ftrun['dot'] = 'd:/dev/tools/graphviz/bin/dotty.exe'
-	let g:vimmake_ftrun['verilog'] = 'd:/dev/iverilog/bin/iverilog.exe'
-else
-	if executable('clisp')
-		let g:vimmake_extrun['lisp'] = 'clisp'
-	elseif executable('sbcl')
-		let g:vimmake_extrun['list'] = 'sbcl --script'
-	endif
-	if executable('swipl')
-		let g:vimmake_extrun['pro'] = 'swipl -s'
-	endif
-endif
-
-if has('win32') || has('win64') || has('win16') || has('win95')
-	let g:vimmake_cflags = ['-O3', '-lwinmm', '-lstdc++', '-lgdi32', '-lws2_32', '-msse3']
-else
-	let g:vimmake_cflags = ['-O3', '-lstdc++']
-	runtime ftplugin/man.vim
-	nnoremap K :Man <cword><CR>
-	let g:ft_man_open_mode = 'vert'
-endif
-
-let g:vimmake_mode = {}
-
-for s:i in range(10)
-	if !has_key(g:vimmake_mode, s:i)
-		let g:vimmake_mode[s:i] = 'async'
-	endif
-	if !has_key(g:vimmake_mode, 'c'.s:i)
-		let g:vimmake_mode['c'.s:i] = 'async'
-	endif
-endfor
-
-command! -bang -nargs=* -complete=file Make VimMake -program=make @ <args>
-
-
-"----------------------------------------------------------------------
-"- OptImport
-"----------------------------------------------------------------------
-" VimImport site/echofunc.vim
-VimImport site/argtextobj.vim
-VimImport site/indent-object.vim
-VimImport site/calendar.vim
-"VimImport site/hilinks.vim
-
-if has('gui_running')
-	VimImport site/hexhigh.vim
-endif
+" let g:terminal_shell='cmd /s /k "c:\drivers\clink\clink.cmd inject"'
 
 
 "----------------------------------------------------------------------
@@ -198,24 +136,16 @@ let OmniCpp_DefaultNamespaces = ["std", "_GLIBCXX_STD"]
 "----------------------------------------------------------------------
 "- bufferhint
 "----------------------------------------------------------------------
-nnoremap - :call bufferhint#Popup()<CR>
-nnoremap <leader>p :call bufferhint#LoadPrevious()<CR>
+if has('patch-8.2.1') || has('nvim-0.4')
+	nnoremap <silent>+ :call quickui#tools#list_buffer('FileSwitch tabe')<cr>
+else
+	nnoremap + :call bufferhint#Popup()<CR>
+endif
 
 let g:bufferhint_CustomHighlight = 1
 hi! default link KeyHint Statement
 hi! default link AtHint Identifier
 
-
-"----------------------------------------------------------------------
-" Enable vim-diff-enhanced (Christian Brabandt)
-"----------------------------------------------------------------------
-function! EnableEnhancedDiff()
-	let &diffexpr='EnhancedDiff#Diff("git diff", "--diff-algorithm=patience")'
-endfunc
-
-if executable('git')
-	let &diffexpr='EnhancedDiff#Diff("git diff", "--diff-algorithm=patience")'
-endif
 
 
 "----------------------------------------------------------------------
@@ -242,4 +172,15 @@ function! SkywindSwitchColor()
 	call asclib#color_switch(s:colors)
 endfunc
 
+
+"----------------------------------------------------------------------
+" quickui
+"----------------------------------------------------------------------
+let g:quickui_tags_list = {
+			\ 'python': '--python-kinds=fmc --language-force=Python',
+			\ }
+
+let g:quickui_tags_indent = {
+			\ 'm': '  ',
+			\ }
 

@@ -56,93 +56,6 @@ let s:windows = (has('win95') || has('win32') || has('win64') || has('win16'))
 
 
 "----------------------------------------------------------------------
-" miniwin_name
-"----------------------------------------------------------------------
-function! asclib#miniwin_name() abort
-	if !exists('s:buffer_seqno')
-		let s:buffer_seqno = 0
-	endif
-    if !exists('t:asclib_miniwin_buf_name')
-        let s:buffer_seqno += 1
-        let t:asclib_miniwin_buf_name = '__MiniWin__.' . s:buffer_seqno
-    endif
-    return t:asclib_miniwin_buf_name
-endfunc
-
-
-"----------------------------------------------------------------------
-" open mini window below the tagbar
-"----------------------------------------------------------------------
-function! asclib#miniwin_toggle()
-	let mark_win = asclib#window#search('quickfix', 'qf', 0)
-	let mini_win = asclib#window#search('nofile', 'miniwin', 0)
-	if mark_win == 0
-		if mini_win > 0
-			let uid = asclib#window#uid('%', '%')
-			silent! exec ''.mini_win.'wincmd w'
-			silent! close
-			if exists('t:asclib_miniwin')
-				unlet t:asclib_miniwin
-			endif
-			call asclib#window#goto_uid(uid)
-		endif
-	else
-		let height = get(g:, 'asclib_miniwin_height', 10)
-		let width = get(g:, 'asclib_miniwin_width', 80)
-		let mark_uid = asclib#window#uid('%', mark_win)
-		if mini_win == 0
-			let uid = asclib#window#uid('%', '%')
-			silent! exec ''.mark_win.'wincmd w'
-			let view = winsaveview()
-			exec "vs ".asclib#miniwin_name()
-			"exec 'belowright '.height.'split '.asclib#miniwin_name()
-			setlocal buftype=nofile 
-			setlocal filetype=miniwin
-			setlocal nomodifiable
-			setlocal nonumber
-			setlocal signcolumn=no
-			setlocal statusline=[miniwin]
-			setlocal wrap
-			call asclib#window#goto_uid(mark_uid)
-			call winrestview(view)
-			call asclib#window#goto_uid(uid)
-		endif
-	endif
-endfunc
-
-
-"----------------------------------------------------------------------
-" asclib#miniwin_display
-"----------------------------------------------------------------------
-function! asclib#miniwin_display(string)
-	let wid = asclib#window#search('nofile', 'miniwin', 0)
-	if wid == 0
-		return
-	endif
-	let uid = asclib#window#uid('%', '%')
-	let xid = asclib#window#uid('%', wid)
-	noautocmd call asclib#window#goto_uid(xid)
-	let save = @0
-	setlocal modifiable
-	silent exec "normal! ggVGx"
-	let @" = a:string
-	silent exec "normal! ggPgg"
-	let @" = save
-	setlocal nomodifiable
-	noautocmd call asclib#window#goto_uid(uid)
-endfunc
-
-
-"----------------------------------------------------------------------
-" toggle tagbar and miniwin together
-"----------------------------------------------------------------------
-function! asclib#miniwin_quickfix_toggle()
-	silent call vimmake#toggle_quickfix(6)
-	silent call asclib#miniwin_toggle()
-endfunc
-
-
-"----------------------------------------------------------------------
 " lint - 
 "----------------------------------------------------------------------
 
@@ -213,7 +126,7 @@ function! asclib#open_win32_help(hlp, keyword)
 		if a:keyword != ''
 			let cmd .= ' ' . shellescape(a:keyword)
 		endif
-		exec 'VimMake -mode=5 '.cmd
+		exec 'AsyncRun -mode=5 '.cmd
 		return 0
 	endif
 	let cmd = 'WinHlp32.exe '
@@ -223,7 +136,7 @@ function! asclib#open_win32_help(hlp, keyword)
 			let cmd .= '-k '.kw. ' '
 		endif
 	endif
-	exec 'VimMake -mode=5 '.cmd. shellescape(a:hlp)
+	exec 'AsyncRun -mode=5 '.cmd. shellescape(a:hlp)
 	return 0
 endfunc
 
@@ -234,7 +147,7 @@ function! asclib#open_win32_chm(chm, keyword)
 		return 1
 	endif
 	if a:keyword == ''
-		silent exec 'VimMake -mode=5 '.shellescape(a:chm)
+		silent exec 'AsyncRun -mode=5 '.shellescape(a:chm)
 		return 0
 	else
 		if asclib#path#which('KeyHH.exe') == ''
@@ -302,7 +215,7 @@ function! asclib#open_gprof(image, profile)
 		let l:profile = 'gmon.out'
 	endif
 	let command = 'gprof '.shellescape(l:image).' '.shellescape(l:profile)
-	let text = vimmake#python_system(command)
+	let text = asclib#core#system(command)
 	let text = substitute(text, '\r', '', 'g')
 	vnew
 	let l:save = @0
@@ -462,61 +375,61 @@ endfunc
 
 
 "----------------------------------------------------------------------
-" owncloud
+" nextcloud
 "----------------------------------------------------------------------
-if !exists('g:asclib#owncloud')
-	let g:asclib#owncloud = ['', '', '']
+if !exists('g:asclib#nextcloud')
+	let g:asclib#nextcloud = ['', '', '']
 endif
 
-if !exists('g:asclib#owncloudcmd')
-	let g:asclib#owncloudcmd = ''
+if !exists('g:asclib#nextcloudcmd')
+	let g:asclib#nextcloudcmd = ''
 endif
 
 
-function! asclib#owncloud_call(command)
-	let cmd = g:asclib#owncloudcmd
+function! asclib#nextcloud_call(command)
+	let cmd = g:asclib#nextcloudcmd
 	if cmd == ''
-		let cmd = asclib#path#executable('owncloudcmd')
+		let cmd = asclib#path#executable('nextcloudcmd')
 	endif
 	if cmd == '' && s:windows != 0
-		if filereadable('C:/Program Files (x86)/ownCloud/owncloudcmd.exe')
-			let cmd = 'C:/Program Files (x86)/ownCloud/owncloudcmd.exe'
-		elseif filereadable('C:/Program Files/ownCloud/owncloudcmd.exe')
-			let cmd = 'C:/Program Files/ownCloud/owncloudcmd.exe'
+		if filereadable('C:/Program Files (x86)/nextcloud/nextcloudcmd.exe')
+			let cmd = 'C:/Program Files (x86)/nextcloud/nextcloudcmd.exe'
+		elseif filereadable('C:/Program Files/nextcloud/nextcloudcmd.exe')
+			let cmd = 'C:/Program Files/nextcloud/nextcloudcmd.exe'
 		endif
 	endif
 	if cmd == ''
-		call asclib#errmsg("cannot find owncloudcmd")		
+		call asclib#errmsg("cannot find nextcloudcmd")		
 		return
 	endif
 	call vimmake#run('', {}, shellescape(cmd) . ' ' . a:command)
 endfunc
 
 
-function! asclib#owncloud_sync()
+function! asclib#nextcloud_sync()
 	let cloud = expand('~/.vim/cloud')
 	try
 		silent call mkdir(cloud, "p", 0755)
 	catch /^Vim\%((\a\+)\)\=:E/
 	finally
 	endtry
-	if type(g:asclib#owncloud) != type([])
-		call asclib#errmsg("bad g:asclib#owncloud config")
+	if type(g:asclib#nextcloud) != type([])
+		call asclib#errmsg("bad g:asclib#nextcloud config")
 		return
 	endif
-	if len(g:asclib#owncloud) != 3
-		call asclib#errmsg("bad g:asclib#owncloud config")
+	if len(g:asclib#nextcloud) != 3
+		call asclib#errmsg("bad g:asclib#nextcloud config")
 		return
 	endif
-	let url = g:asclib#owncloud[0]
-	let cloud_user = g:asclib#owncloud[1]
-	let cloud_pass = g:asclib#owncloud[2]
+	let url = g:asclib#nextcloud[0]
+	let cloud_user = g:asclib#nextcloud[1]
+	let cloud_pass = g:asclib#nextcloud[2]
 	if strpart(url, 0, 5) != 'http:' && strpart(url, 0, 6) != 'https:'
-		call asclib#errmsg("bad g:asclib#owncloud[0] config")
+		call asclib#errmsg("bad g:asclib#nextcloud[0] config")
 		return
 	endif
 	if cloud_user == ''
-		call asclib#errmsg("bad g:asclib#owncloud[1] config")
+		call asclib#errmsg("bad g:asclib#nextcloud[1] config")
 		return
 	endif
 	let cmd = '-u ' .shellescape(cloud_user) . ' '
@@ -526,7 +439,7 @@ function! asclib#owncloud_sync()
 	let cmd .= '--trust --non-interactive '
 	let cmd .= (s:windows == 0)? '--exclude /dev/null ' : ''
 	let cmd .= shellescape(cloud) . ' ' . shellescape(url)
-	call asclib#owncloud_call(cmd)
+	call asclib#nextcloud_call(cmd)
 endfunc
 
 

@@ -17,7 +17,7 @@ function! menu#FindInProject()
 	let p = vimmake#get_root('%')
 	echohl Type
 	call inputsave()
-	let t = input('find word ('. p.'): ')
+	let t = input('find word ('. p.'): ', expand('<cword>'))
 	call inputrestore()
 	echohl None
 	redraw | echo "" | redraw
@@ -196,9 +196,9 @@ function! menu#ReadUrl()
 		return 0
 	endif
 	if executable('curl')
-		exec 'r !curl -sL '.shellescape(t)
+		exec '.-1r !curl -sL '.shellescape(t)
 	elseif executable('wget')
-		exec 'r !wget --no-check-certificate -qO- '.shellescape(t)
+		exec '.-1r !wget --no-check-certificate -qO- '.shellescape(t)
 	else
 		echo "require wget or curl"
 	endif
@@ -243,7 +243,6 @@ call quickmenu#append('Compare buffer', 'call svnhelp#compare_ask_buffer()', 'us
 call quickmenu#append('Paste mode %{&paste? "[x]" :"[ ]"}', 'call menu#TogglePaste()', 'set paste!')
 call quickmenu#append('Ignore Case %{&ignorecase? "[x]" :"[ ]"}', 'set ignorecase!', 'set ignorecase!')
 call quickmenu#append('DelimitMate %{get(b:, "delimitMate_enabled", 0)? "[x]":"[ ]"}', 'DelimitMateSwitch', 'switch DelimitMate')
-call quickmenu#append('Edit tool', 'call menu#EditTool()', 'edit vimmake tools in '. g:vimmake_path)
 
 
 if has('win32') || has('win64') || has('win16') || has('win95')
