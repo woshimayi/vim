@@ -1,3 +1,5 @@
+" using new parser
+let g:snipMate = { 'snippet_version' : 1 }
 
 if 0
 	imap <expr> <m-e> pumvisible() ? '<c-g>u<Plug>snipMateTrigger' : '<Plug>snipMateTrigger'
